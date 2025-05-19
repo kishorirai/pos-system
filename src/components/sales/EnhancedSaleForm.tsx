@@ -89,40 +89,37 @@ const EnhancedSaleForm: React.FC = () => {
   const [grandTotal, setGrandTotal] = useState<number>(0);
 
   // Calculate company summaries for the bill
- const companySummaries = useMemo(() => {
-  const summaries: Record<string, CompanySummary> = {};
+  const companySummaries = useMemo(() => {
+    const summaries: Record<string, CompanySummary> = {};
 
-  // Return empty if no sale items
-  if (!currentSaleItems || currentSaleItems.length === 0) {
-    return summaries;
-  }
-
-  currentSaleItems.forEach(item => {
-    // 🔧 FIX 1: Ensure the company summary object is properly created
-    if (!summaries[item.companyId]) {
-      const company = companies?.find(c => c.id === item.companyId);
-      summaries[item.companyId] = {
-        id: item.companyId,
-        name: company ? company.name : 'Unknown Company',
-        subtotal: 0,
-        discount: 0,
-        gst: 0,
-        total: 0
-      }; // ✅ 🔧 FIX 2: Previously missing closing braces here
+    if (!currentSaleItems || currentSaleItems.length === 0) {
+      return summaries;
     }
 
-    // 🔧 FIX 3: This block was previously missing entirely due to the syntax break
-    const summary = summaries[item.companyId];
-    const baseAmount = item.unitPrice * item.quantity;
-    const discountAmount = item.discountValue || 0;
-    const gstAmount = item.gstAmount || 0;
+    currentSaleItems.forEach(item => {
+      if (!summaries[item.companyId]) {
+        const company = companies?.find(c => c.id === item.companyId);
+        summaries[item.companyId] = {
+          id: item.companyId,
+          name: company ? company.name : 'Unknown Company',
+          subtotal: 0,
+          discount: 0,
+          gst: 0,
+          total: 0
+        };
+      }
 
-    summary.subtotal += baseAmount;
-    summary.discount += discountAmount;
-    summary.gst += gstAmount;
-    summary.total += item.totalPrice;
-  });
-  
+      const summary = summaries[item.companyId];
+      const baseAmount = item.unitPrice * item.quantity;
+      const discountAmount = item.discountValue || 0;
+      const gstAmount = item.gstAmount || 0;
+
+      summary.subtotal += baseAmount;
+      summary.discount += discountAmount;
+      summary.gst += gstAmount;
+      summary.total += item.totalPrice;
+    });
+
     return summaries;
   }, [currentSaleItems, companies]);
 
@@ -648,7 +645,7 @@ const EnhancedSaleForm: React.FC = () => {
                   />
                   <CommandEmpty>No items found.</CommandEmpty>
                   <CommandGroup>
-                    {filteredSearchItems && filteredSearchItems.length > 0 ? filteredSearchItems.map((item) => (
+                    {(filteredSearchItems ?? []).map((item) => (
                       <CommandItem
                         key={item.id}
                         value={item.id}
