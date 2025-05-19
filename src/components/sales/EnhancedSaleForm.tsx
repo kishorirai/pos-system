@@ -89,40 +89,38 @@ const EnhancedSaleForm: React.FC = () => {
   const [grandTotal, setGrandTotal] = useState<number>(0);
 
   // Calculate company summaries for the bill
- const companySummaries = useMemo(() => {
-  const summaries: Record<string, CompanySummary> = {};
+  const companySummaries = useMemo(() => {
+    const summaries: Record<string, CompanySummary> = {};
 
-  // Return empty if no sale items
-  if (!currentSaleItems || currentSaleItems.length === 0) {
-    return summaries;
-  }
-
-  currentSaleItems.forEach(item => {
-    // 🔧 FIX 1: Ensure the company summary object is properly created
-    if (!summaries[item.companyId]) {
-      const company = companies?.find(c => c.id === item.companyId);
-      summaries[item.companyId] = {
-        id: item.companyId,
-        name: company ? company.name : 'Unknown Company',
-        subtotal: 0,
-        discount: 0,
-        gst: 0,
-        total: 0
-      }; // ✅ 🔧 FIX 2: Previously missing closing braces here
+    // Return empty if no sale items
+    if (!currentSaleItems || currentSaleItems.length === 0) {
+      return summaries;
     }
 
-    // 🔧 FIX 3: This block was previously missing entirely due to the syntax break
-    const summary = summaries[item.companyId];
-    const baseAmount = item.unitPrice * item.quantity;
-    const discountAmount = item.discountValue || 0;
-    const gstAmount = item.gstAmount || 0;
+    currentSaleItems.forEach(item => {
+      if (!summaries[item.companyId]) {
+        const company = companies ? companies.find(c => c.id === item.companyId) : null;
+        summaries[item.companyId] = {
+          id: item.companyId,
+          name: company ? company.name : 'Unknown Company',
+          subtotal: 0,
+          discount: 0,
+          gst: 0,
+          total: 0
+        };
+      }
 
-    summary.subtotal += baseAmount;
-    summary.discount += discountAmount;
-    summary.gst += gstAmount;
-    summary.total += item.totalPrice;
-  });
-  
+      const summary = summaries[item.companyId];
+      const baseAmount = item.unitPrice * item.quantity;
+      const discountAmount = item.discountValue || 0;
+      const gstAmount = item.gstAmount || 0;
+
+      summary.subtotal += baseAmount;
+      summary.discount += discountAmount;
+      summary.gst += gstAmount;
+      summary.total += item.totalPrice;
+    });
+
     return summaries;
   }, [currentSaleItems, companies]);
 
@@ -257,7 +255,7 @@ const EnhancedSaleForm: React.FC = () => {
     }
 
     // Validate HSN code for Mansan items
-    if (!hsnCode) {
+    if (!hsnCode && currentCompany?.name === 'Mansan Laal and Sons' && gstRate > 0) {
       toast.error('HSN Code is required for items with GST');
       return;
     }
@@ -543,7 +541,7 @@ const EnhancedSaleForm: React.FC = () => {
     
     // Fallback implementation
     try {
-      const newItems = [...currentSaleItems];
+      const newItems = [...(currentSaleItems || [])];
       newItems[index] = saleItem;
       
       // Remove and add to simulate update
@@ -583,14 +581,14 @@ const EnhancedSaleForm: React.FC = () => {
           <div className="space-y-2">
             <Label htmlFor="godown">Godown *</Label>
             <Select 
-              value={selectedGodownId} 
+              value={selectedGodownId || ''} 
               onValueChange={setSelectedGodownId}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select godown" />
               </SelectTrigger>
               <SelectContent>
-                {filteredGodowns && filteredGodowns.map((godown) => (
+                {(filteredGodowns ?? []).map((godown) => (
                   <SelectItem key={godown.id} value={godown.id}>
                     {godown.name}
                   </SelectItem>
@@ -608,12 +606,12 @@ const EnhancedSaleForm: React.FC = () => {
           {/* Company Selection - 4 columns */}
           <div className="col-span-12 md:col-span-4">
             <Label htmlFor="company">Company</Label>
-            <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+            <Select value={selectedCompanyId || ''} onValueChange={setSelectedCompanyId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a company" />
               </SelectTrigger>
               <SelectContent>
-                {companies && companies.map((company) => (
+                {(companies ?? []).map((company) => (
                   <SelectItem key={company.id} value={company.id}>
                     {company.name}
                   </SelectItem>
@@ -648,7 +646,7 @@ const EnhancedSaleForm: React.FC = () => {
                   />
                   <CommandEmpty>No items found.</CommandEmpty>
                   <CommandGroup>
-                    {filteredSearchItems && filteredSearchItems.length > 0 ? filteredSearchItems.map((item) => (
+                    {(filteredSearchItems ?? []).map((item) => (
                       <CommandItem
                         key={item.id}
                         value={item.id}
@@ -669,7 +667,7 @@ const EnhancedSaleForm: React.FC = () => {
                           <CheckIcon className="h-4 w-4" />
                         )}
                       </CommandItem>
-                    )) : null}
+                    ))}
                   </CommandGroup>
                 </Command>
               </PopoverContent>
@@ -896,7 +894,7 @@ const EnhancedSaleForm: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentSaleItems && currentSaleItems.length > 0 ? (
+            {(currentSaleItems && currentSaleItems.length > 0) ? (
               currentSaleItems.map((item, index) => (
                 <TableRow key={index}>
                   <TableCell>{item.companyName}</TableCell>
@@ -980,11 +978,11 @@ const EnhancedSaleForm: React.FC = () => {
       </Card>
       
       {/* Company-wise Summaries */}
-      {currentSaleItems && currentSaleItems.length > 0 && Object.keys(companySummaries).length > 0 && (
+      {(currentSaleItems && currentSaleItems.length > 0 && Object.keys(companySummaries).length > 0) && (
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Company-wise Summary</h3>
           <div className="grid gap-4">
-            {Object.values(companySummaries).map((company, index) => (
+            {Object.values(companySummaries || {}).map((company, index) => (
               <div key={index} className="border rounded-md p-4">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-medium">{company.name}</h4>
@@ -1041,7 +1039,7 @@ const EnhancedSaleForm: React.FC = () => {
               <Button 
                 className="w-full"
                 size="lg"
-                disabled={currentSaleItems.length === 0 || !customerName || !selectedGodownId}
+                disabled={!(currentSaleItems && currentSaleItems.length > 0) || !customerName || !selectedGodownId}
                 onClick={handleCreateSale}
               >
                 <ShoppingCart className="mr-2 h-4 w-4" />
@@ -1052,7 +1050,7 @@ const EnhancedSaleForm: React.FC = () => {
                 variant="outline" 
                 className="w-full"
                 onClick={handlePreviewConsolidatedBill}
-                disabled={currentSaleItems.length === 0}
+                disabled={!(currentSaleItems && currentSaleItems.length > 0)}
               >
                 <FileText className="mr-2 h-4 w-4" />
                 Preview Final Bill
@@ -1062,7 +1060,7 @@ const EnhancedSaleForm: React.FC = () => {
                 variant="outline" 
                 className="w-full"
                 onClick={clearSaleItems}
-                disabled={currentSaleItems.length === 0}
+                disabled={!(currentSaleItems && currentSaleItems.length > 0)}
               >
                 Clear All
               </Button>
@@ -1142,7 +1140,7 @@ const EnhancedSaleForm: React.FC = () => {
                 </div>
                 
                 {/* Group items by company */}
-                {Object.values(companySummaries).map((company, index) => (
+                {Object.values(companySummaries || {}).map((company, index) => (
                   <div key={index} className="mb-6">
                     <h3 className="font-medium text-lg mb-2">{company.name}</h3>
                     <table className="w-full text-sm">
@@ -1158,7 +1156,7 @@ const EnhancedSaleForm: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentSaleItems.filter(item => item.companyId === company.id).map((item, idx) => (
+                        {(currentSaleItems ?? []).filter(item => item.companyId === company.id).map((item, idx) => (
                           <tr key={idx} className="border-b border-gray-200">
                             <td className="py-1">
                               {item.name}
@@ -1195,7 +1193,7 @@ const EnhancedSaleForm: React.FC = () => {
                       <p className="font-bold">Grand Total:</p>
                     </div>
                     <div className="text-right text-sm">
-                      <p>{currentSaleItems.reduce((sum, item) => sum + item.quantity, 0)}</p>
+                      <p>{(currentSaleItems ?? []).reduce((sum, item) => sum + item.quantity, 0)}</p>
                       <p>₹{subtotal.toFixed(2)}</p>
                       <p>₹{totalDiscount.toFixed(2)}</p>
                       <p>₹{totalGst.toFixed(2)}</p>
@@ -1225,3 +1223,4 @@ const EnhancedSaleForm: React.FC = () => {
 };
 
 export default EnhancedSaleForm;
+
